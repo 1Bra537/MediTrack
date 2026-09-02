@@ -18,6 +18,26 @@ import {
   Vital,
 } from "../lib/api";
 
+const COGNITO_CONFIGURED =
+  !!process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID &&
+  !!process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+
+/** Try fetchAuthSession up to `retries` times with a `delayMs` gap. */
+async function getSessionWithRetry(retries = 3, delayMs = 800) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const session = await fetchAuthSession();
+      if (session.tokens?.idToken) return session;
+    } catch {
+      // Amplify not yet initialised — swallow and retry
+    }
+    if (i < retries - 1) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  return null;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -30,13 +50,20 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const session = await fetchAuthSession();
-        if (!session.tokens?.idToken) {
-          router.push("/login");
-          return;
+        // When Cognito is configured: verify the session exists.
+        // We retry a few times because window.location.href reloads can cause
+        // Amplify to rehydrate its session asynchronously from cookie storage.
+        if (COGNITO_CONFIGURED) {
+          const session = await getSessionWithRetry(3, 600);
+          if (!session) {
+            router.push("/login");
+            return;
+          }
         }
+        // When Cognito is NOT configured: skip auth check entirely — the app
+        // runs in full localStorage-fallback mode without any login required.
 
-        // Fetch data in parallel
+        // Fetch data in parallel — each call has its own localStorage fallback
         const [profRes, medRes, apptRes, vitRes] = await Promise.allSettled([
           profileApi.get(),
           medicationsApi.list(),
@@ -51,7 +78,7 @@ export default function DashboardPage() {
 
       } catch (err) {
         console.error("Dashboard load error:", err);
-        router.push("/login");
+        if (COGNITO_CONFIGURED) router.push("/login");
       } finally {
         setLoading(false);
       }

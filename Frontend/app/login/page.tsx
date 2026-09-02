@@ -7,6 +7,10 @@ import { signIn } from "aws-amplify/auth";
 import { useToast } from "../components/Toast";
 import Spinner from "../components/Spinner";
 
+const COGNITO_CONFIGURED =
+  !!process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID &&
+  !!process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+
 export default function LoginPage() {
   const router = useRouter();
   const toast = useToast();
@@ -21,6 +25,15 @@ export default function LoginPage() {
     setErrorMsg("");
     setLoading(true);
 
+    // Demo / no-Cognito mode: skip authentication entirely
+    if (!COGNITO_CONFIGURED) {
+      toast.success("Welcome back!");
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 200);
+      return;
+    }
+
     try {
       const result = await signIn({
         username: email,
@@ -29,19 +42,21 @@ export default function LoginPage() {
 
       if (result.isSignedIn) {
         toast.success("Welcome back!");
-        router.push("/dashboard");
+        // Use window.location.href (full reload) so the cookie-based
+        // Cognito session is available when the dashboard page loads.
+        window.location.href = "/dashboard";
       } else if (result.nextStep?.signInStep === "CONFIRM_SIGN_UP") {
         toast.warning("Please confirm your email before logging in.");
         router.push(`/confirm-signup?email=${encodeURIComponent(email)}`);
       } else {
         setErrorMsg("Additional authentication step required.");
+        setLoading(false);
       }
     } catch (err: unknown) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Failed to sign in. Please check your credentials.";
       setErrorMsg(msg);
       toast.error("Sign-in failed");
-    } finally {
       setLoading(false);
     }
   }

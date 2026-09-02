@@ -46,7 +46,7 @@ def make_lambda(
     return lambda_.Function(
         scope,
         construct_id,
-        runtime=lambda_.Runtime.PYTHON_3_13,
+        runtime=lambda_.Runtime.PYTHON_3_12,
         handler="lambda_function.lambda_handler",
         code=lambda_.Code.from_asset(handler_path),
         environment=environment,
@@ -210,7 +210,7 @@ class InfrastructureStack(Stack):
         # Ensure Gateway 4xx & 5xx responses always return CORS headers
         api.add_gateway_response(
             "GatewayResponse4XX",
-            type=apigateway.ResponseType.DEFAULT_4XX,
+            type=apigateway.ResponseType.DEFAULT_4_XX,
             response_headers={
                 "Access-Control-Allow-Origin": "'*'",
                 "Access-Control-Allow-Headers": "'Content-Type,Authorization'",
@@ -219,7 +219,7 @@ class InfrastructureStack(Stack):
         )
         api.add_gateway_response(
             "GatewayResponse5XX",
-            type=apigateway.ResponseType.DEFAULT_5XX,
+            type=apigateway.ResponseType.DEFAULT_5_XX,
             response_headers={
                 "Access-Control-Allow-Origin": "'*'",
                 "Access-Control-Allow-Headers": "'Content-Type,Authorization'",

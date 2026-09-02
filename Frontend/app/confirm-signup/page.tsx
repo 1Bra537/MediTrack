@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { confirmSignUp, resendSignUpCode, signIn } from "aws-amplify/auth";
+import { confirmSignUp, resendSignUpCode, autoSignIn, signIn } from "aws-amplify/auth";
 import { useToast } from "../components/Toast";
 import Spinner from "../components/Spinner";
 
 function ConfirmContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
 
@@ -39,15 +38,26 @@ function ConfirmContent() {
     setLoading(true);
 
     try {
-      // Step 1: Confirm sign-up with Cognito
-      await confirmSignUp({
+      // 1. Confirm sign-up with Cognito
+      const confirmRes = await confirmSignUp({
         username: email,
-        confirmationCode: code,
+        confirmationCode: code.trim(),
       });
 
-      toast.success("Email verified! Signing you in...");
+      toast.success("Email verified! Transferring to dashboard...");
 
-      // Step 2: Auto-login if password is known, or prompt
+      // 2. Try autoSignIn
+      if (confirmRes.nextStep?.signUpStep === "COMPLETE_AUTO_SIGN_IN") {
+        try {
+          await autoSignIn();
+          window.location.href = "/dashboard";
+          return;
+        } catch (autoErr) {
+          console.log("autoSignIn error:", autoErr);
+        }
+      }
+
+      // 3. Explicit signIn
       let passToUse = password;
       if (!passToUse) {
         try {
@@ -58,6 +68,7 @@ function ConfirmContent() {
       }
 
       if (passToUse) {
+        await new Promise((r) => setTimeout(r, 200));
         try {
           const signInRes = await signIn({
             username: email,
@@ -69,19 +80,16 @@ function ConfirmContent() {
               sessionStorage.removeItem("pending_signup_email");
               sessionStorage.removeItem("pending_signup_pass");
             } catch {}
-            
-            toast.success("Welcome to your MediTrack Dashboard!");
-            router.push("/dashboard");
+            window.location.href = "/dashboard";
             return;
           }
         } catch (signInErr) {
-          console.error("Auto sign-in failed:", signInErr);
+          console.error("Auto sign-in error:", signInErr);
         }
       }
 
-      // Fallback if password was not in session
-      toast.success("Email verified successfully! Please log in.");
-      router.push("/login");
+      // Fallback redirect to dashboard
+      window.location.href = "/dashboard";
     } catch (err: unknown) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Verification failed. Check your code and try again.";
