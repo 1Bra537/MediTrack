@@ -1,0 +1,10 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "sub": "test-user-123"
+      }
+    }
+  },
+  "body": "{\"firstName\":\"John\",\"lastName\":\"Doe\",\"dateOfBirth\":\"1998-04-12\",\"phone\":\"+237600000000\"}"
+}
