@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { confirmSignUp, resendSignUpCode, autoSignIn, signIn } from "aws-amplify/auth";
+import { confirmSignUp, resendSignUpCode, autoSignIn, signIn, signOut } from "aws-amplify/auth";
 import { useToast } from "../components/Toast";
 import Spinner from "../components/Spinner";
 
@@ -45,6 +45,15 @@ function ConfirmContent() {
       });
 
       toast.success("Email verified! Transferring to dashboard...");
+
+      // CRITICAL: Clear any existing session before signing in the new user.
+      // Without this, a previous user's session cookies persist and the dashboard
+      // loads the wrong user's data.
+      try {
+        await signOut();
+      } catch {
+        // No active session — safe to ignore
+      }
 
       // 2. Try autoSignIn
       if (confirmRes.nextStep?.signUpStep === "COMPLETE_AUTO_SIGN_IN") {

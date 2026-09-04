@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { signOut } from "aws-amplify/auth";
 import { useState } from "react";
 
@@ -83,17 +83,20 @@ const bottomItems: NavItem[] = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   async function handleSignOut() {
     setSigningOut(true);
     try {
-      await signOut();
-      router.push("/login");
+      // global: true also invalidates server-side Cognito tokens/refresh tokens,
+      // preventing reuse of the old session when a new account is created.
+      await signOut({ global: true });
     } catch {
-      setSigningOut(false);
+      // Swallow errors (e.g. no active session) and proceed with redirect
+    } finally {
+      // Full-page reload clears all in-memory Amplify state and session cookies
+      window.location.href = "/login";
     }
   }
 

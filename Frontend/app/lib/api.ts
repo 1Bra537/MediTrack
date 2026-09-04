@@ -94,13 +94,28 @@ async function getCurrentUserId(): Promise<string> {
   try {
     const session = await fetchAuthSession();
     const sub = session.tokens?.idToken?.payload?.sub;
-    if (sub) return sub;
+    if (sub) return sub as string;
   } catch {}
 
   try {
     const user = await getCurrentUser();
     if (user?.userId) return user.userId;
   } catch {}
+
+  // Fallback: generate a stable per-browser anonymous ID so that different
+  // users sharing the same browser (but not signed in) don't collide on the
+  // same localStorage keys. This ID is regenerated if localStorage is cleared.
+  if (typeof window !== "undefined") {
+    try {
+      const ANON_KEY = "meditrack_anon_id";
+      let anonId = localStorage.getItem(ANON_KEY);
+      if (!anonId) {
+        anonId = `anon_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        localStorage.setItem(ANON_KEY, anonId);
+      }
+      return anonId;
+    } catch {}
+  }
 
   return "anonymous_user";
 }

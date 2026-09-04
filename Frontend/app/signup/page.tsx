@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signUp, confirmSignUp, autoSignIn, signIn, resendSignUpCode } from "aws-amplify/auth";
+import { signUp, confirmSignUp, autoSignIn, signIn, signOut, resendSignUpCode } from "aws-amplify/auth";
 import { useToast } from "../components/Toast";
 import Spinner from "../components/Spinner";
 
@@ -83,6 +83,10 @@ export default function SignUpPage() {
 
     // Demo / no-Cognito mode: skip verification entirely
     if (!COGNITO_CONFIGURED) {
+      // Store email-based demo key so each demo user gets isolated localStorage data
+      try {
+        sessionStorage.setItem("demo_user_email", email);
+      } catch {}
       toast.success("Welcome to MediTrack! Loading your dashboard...");
       setTimeout(() => {
         window.location.href = "/dashboard";
@@ -105,15 +109,23 @@ export default function SignUpPage() {
       return;
     }
 
-    // Phase B: Code confirmation succeeded! Notify user and sign in
+    // Phase B: Code confirmation succeeded!
+    // CRITICAL: Sign out any existing session first so the previous user's
+    // session cookies are fully cleared before we sign in the new account.
+    try {
+      await signOut();
+    } catch {
+      // No active session — safe to ignore
+    }
+
     toast.success("Email verified! Loading your dashboard...");
 
     try {
-      // Attempt autoSignIn
+      // Attempt autoSignIn (Cognito-triggered after signUp with autoSignIn: true)
       await autoSignIn();
     } catch {
       try {
-        // Fallback explicit sign in
+        // Fallback: explicit sign in with the credentials from step 1
         await signIn({
           username: email,
           password,
@@ -123,10 +135,8 @@ export default function SignUpPage() {
       }
     }
 
-    // Phase C: Guaranteed navigation to dashboard
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 150);
+    // Phase C: Full-page reload so fresh Cognito cookies are read on the dashboard
+    window.location.href = "/dashboard";
   }
 
   async function handleResendCode() {
