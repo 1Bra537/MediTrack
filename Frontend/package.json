@@ -12,7 +12,7 @@
     "@emnapi/core": "^1.11.3",
     "@emnapi/runtime": "^1.11.3",
     "aws-amplify": "^6.20.0",
-    "next": "16.3.3",
+    "next": "^15.5.25",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -22,7 +22,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "^15.5.25",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
