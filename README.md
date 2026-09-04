@@ -1,5 +1,5 @@
-# Hey ! WELCOME TO MediTrack 
-# The frontend will be built in next.js and React while the backend will consist of python and boto3 and AWS Lambda
+#  WELCOME TO MediTrack 
+# The frontend will be built in next.js while the backend will consist of python and boto3 and AWS Lambda
 # As of the infrasturcture we will use AWS cdk
 
 # The application basically consist of 3 main folders(first made) :
@@ -9,7 +9,6 @@
  # frontend commands 
  -- npx create-next-app@latest frontend
  -- npm run dev
- 
  
 
  The Backend will hold the lambda functions and we'll set up the python environment there too
